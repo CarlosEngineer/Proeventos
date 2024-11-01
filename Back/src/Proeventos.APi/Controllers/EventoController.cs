@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Proeventos.APi.Data;
 using Proeventos.APi.Models;
 
 namespace Proeventos.API.Controllers
@@ -12,50 +14,28 @@ namespace Proeventos.API.Controllers
     [Route("api/[controller]")]
     public class EventoController : ControllerBase
     {
-        public IEnumerable<Evento> _evento = new Evento[]{
-
-            new Evento(){
-                EventoId = 1,
-                Tema = "Angular",
-                Local = "Sao Paulo",
-                Lote = "primeiro lote",
-                 QtdPessoas = 100,
-                DataEvento = DateTime.Now.AddDays(2).ToString()
-
-                },
-            new Evento(){
-                EventoId = 2,
-                Tema = "Dotnet",
-                 Local = "Sao Paulo",
-                Lote = "segundo lote",
-                 QtdPessoas = 200,
-                DataEvento = DateTime.Now.AddDays(2).ToString()
-                }
-                
-            };
         
+        public readonly DataContext _context;
         
-        public EventoController()
+        public EventoController(DataContext context)
         {
+            _context = context;
             
         }
 
         [HttpGet]
         public IEnumerable<Evento> Get()
         {
-            return _evento;
+            return _context.Eventos;
         }
+
+
         [HttpGet("{id}")]
-        public IEnumerable<Evento> Get(int id )
+        public Evento Get(int id )
         {
-            var evento = _evento.Where(c => c.EventoId == id).ToList();
+            
+            return _context.Eventos.FirstOrDefault(c => c.EventoId == id);
 
-            if(!evento.Any() || id < 0)
-            {
-                throw new Exception($"Numero não encontrado {id}.");
-            }
-
-            return _evento.Where(c => c.EventoId.Equals(id));
         }
 
         [HttpPost]
@@ -65,9 +45,20 @@ namespace Proeventos.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public string Apagar(int id)
+        public IActionResult Apagar(int id)
         {
-            return $"Deletando o id {id}";
+            var evento = _context.Eventos.FirstOrDefault(f => f.EventoId == (id));
+
+            if (evento == null){
+
+                return NotFound($"O Id não foi encontrado {id}.");
+            }
+
+            _context.Eventos.Remove(evento);
+            _context.SaveChanges();
+
+
+            return Ok($"Evento com ID {id} foi removido com sucesso!");
         }
 
         [HttpPut("{id}")]
